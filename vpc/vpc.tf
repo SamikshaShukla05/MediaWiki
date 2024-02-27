@@ -1,7 +1,7 @@
 provider "aws" {
   region = "us-east-1"
 }
-
+//Creating VPC
 resource "aws_vpc" "sashukla-vpc" {
        cidr_block = "10.1.0.0/16"
        tags = {
@@ -9,7 +9,7 @@ resource "aws_vpc" "sashukla-vpc" {
      }
    }
 
-//Create a Subnet 
+//Creating subnet 1
 resource "aws_subnet" "sashukla-public_subnet_01" {
     vpc_id = aws_vpc.sashukla-vpc.id
     cidr_block = "10.1.1.0/24"
@@ -20,12 +20,8 @@ resource "aws_subnet" "sashukla-public_subnet_01" {
     }
 }
 
-# resource "aws_db_subnet_group" "sashukla-db-subnet-group" {
-#   name       = "sashukla-db-subnet-group"
-#   subnet_ids = [aws_subnet.sashukla-public_subnet_01.id, aws_subnet.sashukla-public_subnet_02.id]
-# }
-  
-//Create extra Subnet 
+
+//Creating subnet 2
 resource "aws_subnet" "sashukla-public_subnet_02" {
     vpc_id = aws_vpc.sashukla-vpc.id
     cidr_block = "10.1.2.0/24"
@@ -36,6 +32,7 @@ resource "aws_subnet" "sashukla-public_subnet_02" {
     }
 }
 
+//Creating database subnet group
 resource "aws_db_subnet_group" "sashukla_db_subnet_group" {
   name       = "example"
   subnet_ids = [
@@ -43,7 +40,8 @@ resource "aws_db_subnet_group" "sashukla_db_subnet_group" {
     aws_subnet.sashukla-public_subnet_02.id
   ]
 }
-//Creating an Internet Gateway 
+
+//Creating an Internet Gateway
 resource "aws_internet_gateway" "sashukla-igw" {
     vpc_id = aws_vpc.sashukla-vpc.id
     tags = {
@@ -51,7 +49,7 @@ resource "aws_internet_gateway" "sashukla-igw" {
     }
 }
 
-// Create a route table 
+// Create a route table
 resource "aws_route_table" "sashukla-public-rt" {
     vpc_id = aws_vpc.sashukla-vpc.id
     route {
@@ -63,18 +61,19 @@ resource "aws_route_table" "sashukla-public-rt" {
     }
 }
 
-// Associate subnet-01 with route table
+// Associating subnet-01 with route table
 resource "aws_route_table_association" "sashukla-rta-public-subnet-1" {
     subnet_id = aws_subnet.sashukla-public_subnet_01.id
     route_table_id = aws_route_table.sashukla-public-rt.id
 }
 
-// Associate subnet-02 with route table
+// Associating subnet-02 with route table
 resource "aws_route_table_association" "sashukla-rta-public-subnet-2" {
     subnet_id = aws_subnet.sashukla-public_subnet_02.id
     route_table_id = aws_route_table.sashukla-public-rt.id
 }
 
+//Security group for database to allow IPs from the subnet CIDR block
 resource "aws_security_group" "sashukla-db-security-group" {
   name        = "database security group"
   description = "database security group"
@@ -89,6 +88,7 @@ resource "aws_security_group" "sashukla-db-security-group" {
   }
 }
 
+//Creating RDS instance to use for mediawiki
 resource "aws_db_instance" "sashukla-rds" {
   identifier            = "my-db-instance"
   instance_class       = "db.t2.micro"
@@ -112,12 +112,12 @@ resource "aws_db_instance" "sashukla-rds" {
   }
 }
 
-module "sgs" {
+module "securitygroupeks" {
   source = "../sg_eks"
   vpc_id     =     aws_vpc.sashukla-vpc.id
 }
-
-module "eks" {
+//module to create eks cluster
+module "elatickubernetesservice" {
     source = "../eks"
     vpc_id     =     aws_vpc.sashukla-vpc.id
     subnet_ids = [aws_subnet.sashukla-public_subnet_01.id,aws_subnet.sashukla-public_subnet_02.id]

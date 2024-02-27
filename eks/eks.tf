@@ -1,3 +1,4 @@
+//IAM role for EKS cluster
 resource "aws_iam_role" "master" {
   name = "sashukla-eks-master"
 
@@ -16,7 +17,7 @@ resource "aws_iam_role" "master" {
 }
 POLICY
 }
-
+//attaching polices
 resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.master.name
@@ -32,6 +33,7 @@ resource "aws_iam_role_policy_attachment" "AmazonEKSVPCResourceController" {
   role       = aws_iam_role.master.name
 }
 
+//IAM role for worker_node
 resource "aws_iam_role" "worker" {
   name = "sashukla-eks-worker"
 
@@ -50,7 +52,7 @@ resource "aws_iam_role" "worker" {
 }
 POLICY
 }
-
+//attaching policy
 resource "aws_iam_policy" "autoscaler" {
   name   = "sashukla-eks-autoscaler-policy"
   policy = <<EOF
@@ -124,7 +126,7 @@ resource "aws_eks_cluster" "eks" {
   vpc_config {
     subnet_ids = [var.subnet_ids[0],var.subnet_ids[1]]
   }
-  
+
   depends_on = [
     aws_iam_role_policy_attachment.AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.AmazonEKSServicePolicy,
@@ -133,8 +135,7 @@ resource "aws_eks_cluster" "eks" {
   ]
 
 }
-#################################################################################################################
-
+//node group for eks cluster
 resource "aws_eks_node_group" "backend" {
   cluster_name    = aws_eks_cluster.eks.name
   node_group_name = "dev"
@@ -143,13 +144,9 @@ resource "aws_eks_node_group" "backend" {
   capacity_type = "ON_DEMAND"
   disk_size = "20"
   instance_types = ["t3.medium"]
-  #remote_access {
-    #ec2_ssh_key = "demo_key"
-    #source_security_group_ids = [var.sg_ids]
-  #} 
-  
+
   labels =  tomap({env = "dev"})
-  
+
   scaling_config {
     desired_size = 2
     max_size     = 3
